@@ -91,3 +91,58 @@ h1 {
 .boton-frase:hover {
   background-color: rgba(255, 255, 255, 0.4);
 }
+
+.frase-form {
+  width: min(700px, 92%);
+  margin-top: 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.frase-form label {
+  font-family: 'Edu NSW ACT Cursive', cursive;
+  font-size: 1.3rem;
+  color: #fff;
+}
+
+.frase-form textarea {
+  width: 100%;
+  min-height: 88px;
+  resize: vertical;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.28);
+  color: #fff;
+  padding: 12px 14px;
+  font-size: 1rem;
+  outline: none;
+}
+
+.frase-form textarea::placeholder {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.frase-form textarea:focus {
+  border-color: rgba(255, 255, 255, 0.65);
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.2);
+}
+
+.boton-secundario {
+  margin-top: 0;
+}
+
+.estado-envio {
+  margin: 4px 0 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.estado-envio.ok {
+  color: #9af0b4;
+}
+
+.estado-envio.error {
+  color: #ffd2d2;
+}

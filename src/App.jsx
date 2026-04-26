@@ -1,19 +1,24 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import CLOUDS from 'vanta/dist/vanta.clouds.min'
 import { motion } from 'framer-motion'
-import frases from './data/frases'
+import frasesBase from './data/frases'
 import autores from './data/autores'
+import { supabase } from './lib/supabase'
 import './App.css'
 
-function generarContenidoAleatorio() {
-  const frase = frases[Math.floor(Math.random() * frases.length)]
-  const autor = autores[Math.floor(Math.random() * autores.length)]
+function randomItem(list) {
+  return list[Math.floor(Math.random() * list.length)]
+}
+
+function generarContenidoAleatorio(poolFrases) {
+  const frase = randomItem(poolFrases)
+  const autor = randomItem(autores)
 
   return {
-    texto: frase.texto,
+    texto: frase?.texto || 'La inspiración te está buscando.',
     nombre: autor.nombre,
-    imagen: autor.imagen
+    imagen: autor.imagen,
   }
 }
 
@@ -23,7 +28,16 @@ function App() {
 
   const [vantaEffect, setVantaEffect] = useState(null)
   const [vantaReady, setVantaReady] = useState(false)
-  const [contenido, setContenido] = useState(() => generarContenidoAleatorio())
+  const [frasesComunidad, setFrasesComunidad] = useState([])
+  const [nuevaFrase, setNuevaFrase] = useState('')
+  const [estadoEnvio, setEstadoEnvio] = useState({ tipo: '', mensaje: '' })
+
+  const poolFrases = useMemo(
+    () => [...frasesBase, ...frasesComunidad.map((f) => ({ texto: f.texto }))],
+    [frasesComunidad]
+  )
+
+  const [contenido, setContenido] = useState(() => generarContenidoAleatorio(frasesBase))
 
   useEffect(() => {
     clickAudioRef.current = new Audio('/sounds/fino.mp3')
@@ -35,7 +49,74 @@ function App() {
       clickAudioRef.current.play().catch(() => {})
     }
 
-    setContenido(generarContenidoAleatorio())
+    setContenido(generarContenidoAleatorio(poolFrases))
+  }
+
+  useEffect(() => {
+    async function cargarFrasesComunidad() {
+      if (!supabase) {
+        console.warn('Supabase no configurado: usando solo frases locales.')
+        return
+      }
+
+      const { data, error } = await supabase
+        .from('frases_comunidad')
+        .select('id, texto, created_at')
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        console.error('Error cargando frases de comunidad:', error)
+        return
+      }
+
+      setFrasesComunidad(data || [])
+    }
+
+    cargarFrasesComunidad()
+  }, [])
+
+  useEffect(() => {
+    setContenido(generarContenidoAleatorio(poolFrases))
+  }, [poolFrases])
+
+  async function handleAgregarFrase(e) {
+    e.preventDefault()
+
+    const texto = nuevaFrase.trim()
+    if (!texto) {
+      setEstadoEnvio({ tipo: 'error', mensaje: 'Escribe una frase antes de enviar.' })
+      return
+    }
+
+    const existe = poolFrases.some((f) => f.texto.toLowerCase() === texto.toLowerCase())
+    if (existe) {
+      setEstadoEnvio({ tipo: 'error', mensaje: 'Esa frase ya existe. Prueba otra ✨' })
+      return
+    }
+
+    if (!supabase) {
+      setEstadoEnvio({
+        tipo: 'error',
+        mensaje: 'Falta configurar Supabase en variables de entorno.',
+      })
+      return
+    }
+
+    const { data, error } = await supabase
+      .from('frases_comunidad')
+      .insert([{ texto }])
+      .select('id, texto, created_at')
+      .single()
+
+    if (error) {
+      console.error('Error insertando frase:', error)
+      setEstadoEnvio({ tipo: 'error', mensaje: 'No se pudo guardar. Inténtalo otra vez.' })
+      return
+    }
+
+    setFrasesComunidad((prev) => [data, ...prev])
+    setNuevaFrase('')
+    setEstadoEnvio({ tipo: 'ok', mensaje: 'Frase enviada con éxito 🙌' })
   }
 
   useEffect(() => {
@@ -108,12 +189,26 @@ function App() {
           className="autor-img"
         />
 
-        <button
-          className="boton-frase"
-          onClick={handleNuevaFrase}
-        >
+        <button className="boton-frase" onClick={handleNuevaFrase}>
           Siguiente frase inspiradora 😍
         </button>
+
+        <form className="frase-form" onSubmit={handleAgregarFrase}>
+          <label htmlFor="nueva-frase">Comparte tu frase inspiradora</label>
+          <textarea
+            id="nueva-frase"
+            value={nuevaFrase}
+            onChange={(e) => setNuevaFrase(e.target.value)}
+            placeholder="Escribe aquí tu frase..."
+            maxLength={220}
+          />
+          <button type="submit" className="boton-frase boton-secundario">
+            Enviar frase a la comunidad
+          </button>
+          {estadoEnvio.mensaje ? (
+            <p className={`estado-envio ${estadoEnvio.tipo}`}>{estadoEnvio.mensaje}</p>
+          ) : null}
+        </form>
       </div>
     </div>
   )
