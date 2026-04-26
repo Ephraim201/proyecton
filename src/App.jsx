@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import * as THREE from 'three'
 import CLOUDS from 'vanta/dist/vanta.clouds.min'
 import { motion } from 'framer-motion'
 import frasesBase from './data/frases'
@@ -122,17 +121,35 @@ function App() {
   useEffect(() => {
     if (!vantaEffect && vantaRef.current) {
       try {
-        const threeInstance =
-          typeof window !== 'undefined' && window.THREE ? window.THREE : THREE
+        const cloudsFactory =
+          typeof CLOUDS === 'function'
+            ? CLOUDS
+            : typeof CLOUDS?.default === 'function'
+              ? CLOUDS.default
+              : null
 
-        const effect = CLOUDS({
+        if (!cloudsFactory) {
+          throw new Error('Vanta CLOUDS factory inválido (export no es función).')
+        }
+
+        if (typeof window !== 'undefined' && !window.THREE) {
+          throw new Error('window.THREE no está disponible para Vanta.')
+        }
+
+        const effect = cloudsFactory({
           el: vantaRef.current,
-          THREE: threeInstance,
+          THREE: window.THREE,
           mouseControls: true,
           touchControls: true,
           gyroControls: false,
           minHeight: 200.0,
           minWidth: 200.0,
+          backgroundColor: 0xf0e8de,
+          skyColor: 0x9a87f0,
+          cloudColor: 0x6378be,
+          sunColor: 0x342311,
+          sunGlareColor: 0xeb400a,
+          sunlightColor: 0x89837d,
         })
 
         setVantaEffect(effect)
