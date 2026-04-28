@@ -187,19 +187,23 @@ function App() {
     if (nuevosLikes >= 50) nuevoEstado = 'approved'
     if (nuevosDislikes >= 50) nuevoEstado = 'rejected'
 
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('frases_comunidad')
       .update({ likes: nuevosLikes, dislikes: nuevosDislikes, estado: nuevoEstado })
       .eq('id', frase.id)
-      .select('id, texto, likes, dislikes, estado, created_at')
-      .single()
 
     if (error) {
       console.error('Error al votar frase:', error)
       return
     }
 
-    setFrasesComunidad((prev) => prev.map((item) => (item.id === data.id ? data : item)))
+    setFrasesComunidad((prev) =>
+      prev.map((item) =>
+        item.id === frase.id
+          ? { ...item, likes: nuevosLikes, dislikes: nuevosDislikes, estado: nuevoEstado }
+          : item
+      )
+    )
   }
 
   function cambiarSeccion(seccion) {
