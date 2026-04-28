@@ -36,6 +36,77 @@ h1 {
   transition: opacity 0.3s ease;
 }
 
+.menu-toggle {
+  position: fixed;
+  top: 18px;
+  left: 18px;
+  z-index: 30;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  padding: 10px;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+}
+
+.menu-toggle span {
+  display: block;
+  width: 100%;
+  height: 3px;
+  border-radius: 10px;
+  background: #fff;
+}
+
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: -320px;
+  height: 100%;
+  width: 280px;
+  background: rgba(16, 20, 31, 0.95);
+  border-right: 1px solid rgba(255, 255, 255, 0.18);
+  z-index: 35;
+  padding: 72px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: left 0.28s ease;
+}
+
+.sidebar.open {
+  left: 0;
+}
+
+.menu-item {
+  width: 100%;
+  text-align: left;
+  border: none;
+  border-radius: 10px;
+  padding: 12px 12px;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  font-size: 0.98rem;
+}
+
+.menu-item.active {
+  background: rgba(154, 135, 240, 0.65);
+  font-weight: 700;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 25;
+  background: rgba(0, 0, 0, 0.35);
+}
+
 .logo:hover {
   opacity: 1;
   cursor: pointer;
@@ -43,11 +114,11 @@ h1 {
 
 .content {
   position: relative;
-  z-index: 1;
+  z-index: 20;
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100%;
+  min-height: 100%;
   color: white;
   text-align: center;
   flex-direction: column;
@@ -145,4 +216,41 @@ h1 {
 
 .estado-envio.error {
   color: #ffd2d2;
+}
+
+.seccion-votar {
+  width: min(820px, 94%);
+  max-width: 820px;
+  padding: 12px;
+}
+
+.votar-lista {
+  display: grid;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.votar-card {
+  text-align: left;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.votar-texto {
+  margin: 0 0 10px;
+  font-size: 1.08rem;
+  line-height: 1.4;
+}
+
+.votar-contadores {
+  margin: 0 0 10px;
+  font-weight: 700;
+  color: #f2f2f2;
+}
+
+.votar-acciones {
+  display: flex;
+  gap: 10px;
 }

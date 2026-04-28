@@ -1,8 +1,8 @@
-# TODO - Inspirator clone (React)
+# TODO - Flujo de votación de frases (Supabase)
 
-- [x] Crear `src/data/frases.js`
-- [x] Crear `src/data/autores.js`
-- [x] Reemplazar `src/App.jsx` con lógica inspirator (Vanta + Framer Motion + audio + random)
-- [x] Reemplazar `src/App.css` con estilos inspirator
-- [x] Instalar dependencias: `three`, `vanta`, `framer-motion`
-- [ ] Ejecutar pruebas de ruta crítica y verificar errores de consola
+- [ ] Actualizar `src/App.jsx` para separar frases por estado (`pending`, `approved`, `rejected`)
+- [ ] Implementar sección "Votar frases inspiradoras" con tarjetas + botones Like/Dislike
+- [ ] Cambiar "Crear frase inspiradora" para guardar nuevas frases en estado `pending`
+- [ ] Aplicar regla de umbral: 50 likes => `approved`, 50 dislikes => `rejected`
+- [ ] Ajustar `src/App.css` para UI de votación
+- [ ] Entregar SQL de Supabase para agregar columnas requeridas

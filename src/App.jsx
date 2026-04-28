@@ -30,10 +30,22 @@ function App() {
   const [frasesComunidad, setFrasesComunidad] = useState([])
   const [nuevaFrase, setNuevaFrase] = useState('')
   const [estadoEnvio, setEstadoEnvio] = useState({ tipo: '', mensaje: '' })
+  const [menuAbierto, setMenuAbierto] = useState(false)
+  const [seccionActiva, setSeccionActiva] = useState('frases')
+
+  const frasesAprobadas = useMemo(
+    () => frasesComunidad.filter((f) => f.estado === 'approved'),
+    [frasesComunidad]
+  )
+
+  const frasesPendientes = useMemo(
+    () => frasesComunidad.filter((f) => f.estado === 'pending'),
+    [frasesComunidad]
+  )
 
   const poolFrases = useMemo(
-    () => [...frasesBase, ...frasesComunidad.map((f) => ({ texto: f.texto }))],
-    [frasesComunidad]
+    () => [...frasesBase, ...frasesAprobadas.map((f) => ({ texto: f.texto }))],
+    [frasesAprobadas]
   )
 
   const [contenido, setContenido] = useState(() => generarContenidoAleatorio(frasesBase))
@@ -60,7 +72,7 @@ function App() {
 
       const { data, error } = await supabase
         .from('frases_comunidad')
-        .select('id, texto, created_at')
+        .select('id, texto, likes, dislikes, estado, created_at')
         .order('created_at', { ascending: false })
 
       if (error) {
@@ -103,8 +115,8 @@ function App() {
 
     const { data, error } = await supabase
       .from('frases_comunidad')
-      .insert([{ texto }])
-      .select('id, texto, created_at')
+      .insert([{ texto, likes: 0, dislikes: 0, estado: 'pending' }])
+      .select('id, texto, likes, dislikes, estado, created_at')
       .single()
 
     if (error) {
@@ -165,9 +177,72 @@ function App() {
     }
   }, [vantaEffect])
 
+  async function handleVotar(frase, tipo) {
+    if (!supabase || frase.estado !== 'pending') return
+
+    const nuevosLikes = tipo === 'like' ? (frase.likes || 0) + 1 : frase.likes || 0
+    const nuevosDislikes = tipo === 'dislike' ? (frase.dislikes || 0) + 1 : frase.dislikes || 0
+
+    let nuevoEstado = 'pending'
+    if (nuevosLikes >= 50) nuevoEstado = 'approved'
+    if (nuevosDislikes >= 50) nuevoEstado = 'rejected'
+
+    const { data, error } = await supabase
+      .from('frases_comunidad')
+      .update({ likes: nuevosLikes, dislikes: nuevosDislikes, estado: nuevoEstado })
+      .eq('id', frase.id)
+      .select('id, texto, likes, dislikes, estado, created_at')
+      .single()
+
+    if (error) {
+      console.error('Error al votar frase:', error)
+      return
+    }
+
+    setFrasesComunidad((prev) => prev.map((item) => (item.id === data.id ? data : item)))
+  }
+
+  function cambiarSeccion(seccion) {
+    setSeccionActiva(seccion)
+    setMenuAbierto(false)
+  }
+
   return (
     <div className="app">
       <div className={`bg ${!vantaReady ? 'bg-fallback' : ''}`} ref={vantaRef}></div>
+
+      <button
+        className="menu-toggle"
+        aria-label="Abrir menú"
+        onClick={() => setMenuAbierto((prev) => !prev)}
+      >
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+
+      <aside className={`sidebar ${menuAbierto ? 'open' : ''}`}>
+        <button
+          className={`menu-item ${seccionActiva === 'frases' ? 'active' : ''}`}
+          onClick={() => cambiarSeccion('frases')}
+        >
+          Frases inspiradoras
+        </button>
+        <button
+          className={`menu-item ${seccionActiva === 'votar' ? 'active' : ''}`}
+          onClick={() => cambiarSeccion('votar')}
+        >
+          Votar frases inspiradoras
+        </button>
+        <button
+          className={`menu-item ${seccionActiva === 'crear' ? 'active' : ''}`}
+          onClick={() => cambiarSeccion('crear')}
+        >
+          Crear frase inspiradora
+        </button>
+      </aside>
+
+      {menuAbierto ? <div className="overlay" onClick={() => setMenuAbierto(false)} /> : null}
 
       <img
         src="/img/logo2.png"
@@ -176,56 +251,96 @@ function App() {
       />
 
       <div className="content">
-        <motion.h1
-          key={contenido.texto}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="frase"
-        >
-          “{contenido.texto}”
-        </motion.h1>
+        {seccionActiva === 'frases' ? (
+          <>
+            <motion.h1
+              key={contenido.texto}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="frase"
+            >
+              “{contenido.texto}”
+            </motion.h1>
 
-        <motion.h2
-          key={contenido.nombre}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3, duration: 0.6 }}
-          className="autor"
-        >
-          — {contenido.nombre}
-        </motion.h2>
+            <motion.h2
+              key={contenido.nombre}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3, duration: 0.6 }}
+              className="autor"
+            >
+              — {contenido.nombre}
+            </motion.h2>
 
-        <motion.img
-          key={contenido.imagen}
-          src={contenido.imagen}
-          alt={contenido.nombre}
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.6, duration: 0.6 }}
-          className="autor-img"
-        />
+            <motion.img
+              key={contenido.imagen}
+              src={contenido.imagen}
+              alt={contenido.nombre}
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.6, duration: 0.6 }}
+              className="autor-img"
+            />
 
-        <button className="boton-frase" onClick={handleNuevaFrase}>
-          Siguiente frase inspiradora 😍
-        </button>
+            <button className="boton-frase" onClick={handleNuevaFrase}>
+              Siguiente frase inspiradora 😍
+            </button>
+          </>
+        ) : null}
 
-        <form className="frase-form" onSubmit={handleAgregarFrase}>
-          <label htmlFor="nueva-frase">Comparte tu frase inspiradora</label>
-          <textarea
-            id="nueva-frase"
-            value={nuevaFrase}
-            onChange={(e) => setNuevaFrase(e.target.value)}
-            placeholder="Escribe aquí tu frase..."
-            maxLength={220}
-          />
-          <button type="submit" className="boton-frase boton-secundario">
-            Enviar frase a la comunidad
-          </button>
-          {estadoEnvio.mensaje ? (
-            <p className={`estado-envio ${estadoEnvio.tipo}`}>{estadoEnvio.mensaje}</p>
-          ) : null}
-        </form>
+        {seccionActiva === 'votar' ? (
+          <div className="seccion-votar">
+            <h1>Votar frases inspiradoras</h1>
+            {frasesPendientes.length ? (
+              <div className="votar-lista">
+                {frasesPendientes.map((frase) => (
+                  <article key={frase.id} className="votar-card">
+                    <p className="votar-texto">“{frase.texto}”</p>
+                    <p className="votar-contadores">
+                      👍 {frase.likes || 0} · 👎 {frase.dislikes || 0}
+                    </p>
+                    <div className="votar-acciones">
+                      <button
+                        className="boton-frase boton-secundario"
+                        onClick={() => handleVotar(frase, 'like')}
+                      >
+                        Like
+                      </button>
+                      <button
+                        className="boton-frase boton-secundario"
+                        onClick={() => handleVotar(frase, 'dislike')}
+                      >
+                        Dislike
+                      </button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p>No hay frases pendientes de votación ahora mismo.</p>
+            )}
+          </div>
+        ) : null}
+
+        {seccionActiva === 'crear' ? (
+          <form className="frase-form" onSubmit={handleAgregarFrase}>
+            <label htmlFor="nueva-frase">Comparte tu frase inspiradora</label>
+            <textarea
+              id="nueva-frase"
+              value={nuevaFrase}
+              onChange={(e) => setNuevaFrase(e.target.value)}
+              placeholder="Escribe aquí tu frase..."
+              maxLength={220}
+            />
+            <button type="submit" className="boton-frase boton-secundario">
+              Enviar frase a la comunidad
+            </button>
+            {estadoEnvio.mensaje ? (
+              <p className={`estado-envio ${estadoEnvio.tipo}`}>{estadoEnvio.mensaje}</p>
+            ) : null}
+          </form>
+        ) : null}
       </div>
     </div>
   )
